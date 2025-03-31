@@ -60,14 +60,14 @@ int main(int argc, const char** argv)
   {
     error = 0.0;
 #pragma omp parallel for reduction(max:error)
-    for( int j = 1; j < jmax+1; j++ )
+    for( int j, i = 1; i, j < (jmax+1)*(imax+1); i++, j++ )
     {
-      for( int i = 1; i < imax+1; i++)
-      {
+      //for( int i = 1; i < imax+1; i++)
+      //{
         Anew[(j)*(imax+2)+i] = 0.25f * ( A[(j)*(imax+2)+i+1] + A[(j)*(imax+2)+i-1]
             + A[(j-1)*(imax+2)+i] + A[(j+1)*(imax+2)+i]);
         error = fmax( error, fabs(Anew[(j)*(imax+2)+i]-A[(j)*(imax+2)+i]));
-      }
+      //}
     }
 #pragma omp parallel for
     for( int j = 1; j < jmax+1; j++ )

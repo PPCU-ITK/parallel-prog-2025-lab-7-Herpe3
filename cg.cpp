@@ -12,14 +12,23 @@ void conjugate_gradient_csr(const double* values, const int* col_indices, const 
     double* Ap = new double[n];
     double* Ax = new double[n];
 
+    //---
+    const int values_size = row_start[n];
+
+    #pragma omp target data map(alloc:r[0:n]) map(values[0:values_size]) map(col_indices[0:values_size]) map(row_start[0:n+1]) map(b[0:n]) map(x[0:n]) map(alloc:p[0:n]) map(aloc:Ap[0:n]) map(alloc:Ax[0:n])
+    //---
+
+
     // Initial step: compute r = b - A*x
     matrix_vector_multiply_csr(values, col_indices, row_start, x, Ax, n);
+    #pragma omp target teams distribute parallel for //---
     for (int i = 0; i < n; ++i) {
         r[i] = b[i] - Ax[i];
         p[i] = r[i];
     }
 
     double rsold = 0.0;
+    #pragma omp target teams distribute parallel for //---
     for (int i = 0; i < n; ++i) {
         rsold += r[i] * r[i];
     }
@@ -27,17 +36,20 @@ void conjugate_gradient_csr(const double* values, const int* col_indices, const 
     for (int i = 0; i < max_iterations; ++i) {
         matrix_vector_multiply_csr(values, col_indices, row_start, p, Ap, n);
         double pAp = 0.0;
+        #pragma omp target teams distribute parallel for //---
         for (int j = 0; j < n; ++j) {
             pAp += p[j] * Ap[j];
         }
         double alpha = rsold / pAp;
 
+        #pragma omp target teams distribute parallel for //---
         for (int j = 0; j < n; ++j) {
             x[j] += alpha * p[j];
             r[j] -= alpha * Ap[j];
         }
 
         double rsnew = 0.0;
+        #pragma omp target teams distribute parallel for //---
         for (int j = 0; j < n; ++j) {
             rsnew += r[j] * r[j];
         }
@@ -49,6 +61,7 @@ void conjugate_gradient_csr(const double* values, const int* col_indices, const 
 	    std::cout << i << " residual " << sqrt(rsnew) << std::endl;
 	}
 
+        #pragma omp target teams distribute parallel for //---
         for (int j = 0; j < n; ++j) {
             p[j] = r[j] + (rsnew / rsold) * p[j];
         }
@@ -62,14 +75,18 @@ void conjugate_gradient_csr(const double* values, const int* col_indices, const 
     delete[] Ax;
 }
 
+
 void matrix_vector_multiply_csr(const double* values, const int* col_indices, const int* row_start, const double* x, double* result, int n) {
-    for (int i = 0; i < n; ++i) {
+    for (int i = 0; i < n; ++i)
+    {
         result[i] = 0.0;
-        for (int j = row_start[i]; j < row_start[i + 1]; ++j) {
+        for (int j = row_start[i]; j < row_start[i + 1]; ++j)
+        {
             result[i] += values[j] * x[col_indices[j]];
         }
     }
 }
+
 
 
 int main() {
@@ -81,7 +98,7 @@ int main() {
     std::vector<double> b(n, 1.0); // Heat source vector
     std::vector<double> x(n, 0.0); // Solution vector
 
-    // Build CSR representation for A
+    // Build CSR representation for A ---matrix
     int nnz = 0; // Non-zero count
     for (int i = 0; i < n; ++i) {
         row_start[i] = nnz;
@@ -121,7 +138,7 @@ int main() {
     double* b_array = &b[0];
     double* x_array = &x[0];
 
-    // Solve the system using a CSR-based Conjugate Gradient method
+    // Solve the system using a CSR-based Conjugate Gradient method ---interressant part
     int max_iterations = 1000;
     double tolerance = 1e-8;
     auto t1 = std::chrono::high_resolution_clock::now();
