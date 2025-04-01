@@ -234,7 +234,7 @@ int main(){
 
         // Calculate total kinetic energy
         double total_kinetic = 0.0;
-        #pragma omp target teams distribute parallel for reduction(+:total_kinetic) collapse(2) 
+        #pragma omp target teams distribute parallel for collapse(2) reduction(+:total_kinetic) 
         for (int i = 1; i <= Nx; i++) {
             for (int j = 1; j <= Ny; j++) {
                 double u = rhou[i*(Ny+2)+j] / rho[i*(Ny+2)+j];
